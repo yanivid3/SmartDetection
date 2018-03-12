@@ -13,7 +13,7 @@ Param(
    [Parameter(Mandatory=$True)]
    [string]$SendMailtoOwnersAndReadersEnabled,
 	
-   [Parameter(Mandatory=$True, HelpMessage="Set comma seperate demail list")]
+   [Parameter(Mandatory=$True, HelpMessage="Set comma seperated email list. for an empty list use '[]'")]
    [string[]]$CustomeMails,
    
    [Parameter(Mandatory=$False)]
