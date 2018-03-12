@@ -5,7 +5,7 @@
 #
 # Usage examples:
 #		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails @()
-#		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails person1@mail.com, person2@mail.com
+#		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails person1@mail.com,person2@mail.com
 #
 
 Param(
