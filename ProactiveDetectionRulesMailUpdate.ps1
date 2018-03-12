@@ -20,9 +20,8 @@ Param(
    [string]$TenantId
 )
 
-# create the autoherization token (manual approach)
+# create the autoherization token
 # taken from: https://blogs.technet.microsoft.com/paulomarques/2016/03/21/working-with-azure-active-directory-graph-api-from-powershell/
-# for full automation, the token will need to be retrieved by a non-manual approach
 function GetAuthToken {
     param
     (
