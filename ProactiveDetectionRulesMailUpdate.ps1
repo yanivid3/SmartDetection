@@ -1,24 +1,72 @@
-
-
 #
 # This script will update your Azure Application Insights Smart Detection rules email configuration
 # You can set whether to send emails to owners, contributers and readers, and add custom email addresses that will get the emails.
 # You can read more about it here: https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-diagnostics
 #
+# Usage examples:
+#		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails @()
+#		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails person1@mail.com, person2@mail.com
+#
 
-[CmdletBinding()]
 Param(
  
    [ValidateSet("True","False")] 
    [Parameter(Mandatory=$True)]
    [string]$SendMailtoOwnersAndReadersEnabled,
 	
-   [Parameter(Mandatory=$True, HelpMessage="Set comma seperated email list. for an empty list use '[]'")]
+   [Parameter(Mandatory=$True, HelpMessage="Set comma seperated email list. For an empty list use: @()")]
+   [AllowEmptyCollection()]
    [string[]]$CustomeMails,
    
-   [Parameter(Mandatory=$False)]
+   [Parameter(Mandatory=$false)]
+   [AllowNull()][AllowEmptyString()]
    [string]$TenantId
 )
+
+# Login to RmAzure account
+function Login
+{
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        $TenantId
+    )
+	
+    $needLogin = $true
+    Try 
+    {
+        $content = Get-AzureRmContext
+        if ($content) 
+        {
+            $needLogin = ([string]::IsNullOrEmpty($content.Account))
+        } 
+    } 
+    Catch 
+    {
+        if ($_ -like "*Login-AzureRmAccount to login*") 
+        {
+            $needLogin = $true
+        } 
+        else 
+        {
+            throw
+        }
+    }
+
+    if ($needLogin)
+    {
+        if ([string]::IsNullOrEmpty($TenantId))
+		{
+			Write-Host "Login to default tenant"
+			Login-AzureRmAccount 
+		}
+		else
+		{
+			Write-Host "Login to tenant:" ($TenantId)
+			Login-AzureRmAccount -TenantId $TenantId
+		}
+    }
+}
 
 # create the autoherization token
 # taken from: https://blogs.technet.microsoft.com/paulomarques/2016/03/21/working-with-azure-active-directory-graph-api-from-powershell/
@@ -48,26 +96,19 @@ function GetAuthToken {
 # Main
 #####################################
 
-Write-Host "Started runnign with following params: SendMailToOwnesAndReaders: " ($SendMailtoOwnersAndReadersEnabled) ". Custom Mails: " ($CustomeMails)
+Write-Host "Started running with the following params: SendMailToOwnesAndReaders: " ($SendMailtoOwnersAndReadersEnabled) ". Custom Mails: " ($CustomeMails)
 
-# Install Azure PowerShell: https://docs.microsoft.com/en-us/powershell/azure/install-azurerm-ps?view=azurermps-5.4.0
-if ((Get-Module -ListAvailable -Name AzureRM) -eq $null) 
+# Check if AzureRM is installed. Ream more here : https://docs.microsoft.com/en-us/powershell/azure/install-azurerm-ps?view=azurermps-5.4.0
+if ((Get-Module -ListAvailable -Name AzureRM*) -eq $null) 
 {
-	Write-Host "Installing Azure PowerShell"
-	Install-Module -Name AzureRM -AllowClobber
+	Write-Host "AzureRM module is missing on this machine. please run from another machine, or install using following documentation: https://docs.microsoft.com/en-us/powershell/azure/install-azurerm-ps?view=azurermps-5.4.0"
+	# Install-Module -Name AzureRM -AllowClobber
 }
 
-if ($TenantId -eq $null)
-{
-	Write-Host "Login to default tenant"
-	Login-AzureRmAccount 
-}
-else
-{
-	Write-Host "Login to tenant:" ($TenantId)
-	Login-AzureRmAccount -TenantId $TenantId
-}
+# Login to AzureRmAccount (if not logged in already)
+Login -TenantId $TenantId
 
+# Fetch all subscriptions, and prompt user to select relevant subscriptions.
 $subscriptions = Get-AzureRmSubscription 
 $subscriptionsIndexesArray = @()
 $index = 0
@@ -86,6 +127,12 @@ if ($subscriptionsIndexes -ne "all")
 }
 Write-Host "You selected to update the apps in following subscription: " ($subscriptionsIndexesArray -join ",")
 Read-Host "Press any key to proceed"
+
+# Get access token to fetch proactive detection rules.
+$token = GetAuthToken -TenantId $subscription.TenantId
+$authHeader = @{
+	'Authorization' = $token.CreateAuthorizationHeader()
+}
  
 foreach ($subscription in $subscriptions) 
 {
@@ -96,11 +143,6 @@ foreach ($subscription in $subscriptions)
 	
 	Write-Host "working on subscription:" $subscription.Name ($subscription.Id)
 	Select-AzureRmSubscription $subscription.Id | Out-Null
-	$selectedSubscription = Select-AzureRmSubscription $subscription.Id
-	$token = GetAuthToken -TenantId $subscription.TenantId
-	$authHeader = @{
-		'Authorization' = $token.CreateAuthorizationHeader()
-	}
 	
 	$applicationInsightsResources = Get-AzureRmApplicationInsights
 	Write-Host "Total appinsights reroueces found:" $applicationInsightsResources.count ". Names: " ($applicationInsightsResources.Name -join ",")
@@ -108,8 +150,9 @@ foreach ($subscription in $subscriptions)
 	
 	foreach ($resource in $applicationInsightsResources) 
 	{
+		$updatedRules = @()
 		$listRulesUri = "https://management.azure.com/subscriptions/$($subscription.Id)/resourcegroups/$($resource.ResourceGroupName)/providers/microsoft.insights/components/$($resource.Name)/ProactiveDetectionConfigs?api-version=2015-05-01"
-		Write-Host "Current Appinsights resource:" $resource.Name "; Uri: " $listRulesUri
+		Write-Host "Current Appinsights resource:" $resource.Name # "; Uri: " $listRulesUri
 					
 		# Get rule info:
 		$rules = Invoke-RestMethod -Uri $listRulesUri -Headers $authHeader -Method Get
@@ -124,15 +167,18 @@ foreach ($subscription in $subscriptions)
 			}
 			
 			$updateRuleUri = "https://management.azure.com/subscriptions/$($subscription.Id)/resourcegroups/$($resource.ResourceGroupName)/providers/microsoft.insights/components/$($resource.Name)/ProactiveDetectionConfigs?ConfigurationId=$($rule.name)&api-version=2015-05-01"
-			Write-Host "rule json: " $rule
+
 			$rule.sendEmailsToSubscriptionOwners = ($SendMailtoOwnersAndReadersEnabled -eq "True")
 			$rule.customEmails = $CustomeMails
 			
 			$ruleJson = $rule | ConvertTo-Json
 
 			# Update rule info:
-			Invoke-RestMethod -Uri $updateRuleUri -Headers $authHeader -Method Put -Body $ruleJson -ContentType "application/json"
+			$updatedRules += Invoke-RestMethod -Uri $updateRuleUri -Headers $authHeader -Method Put -Body $ruleJson -ContentType "application/json" 
 			Write-host "Updated rule succeffully" 
 		}
+		
+		Write-Host "Updated all rules for resource:" $resource.Name
+		$updatedRules | ft name, enabled, sendEmailsToSubscriptionOwners, customEmails 
 	}
 }
