@@ -4,8 +4,8 @@
 # You can read more about it here: https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-diagnostics
 #
 # Usage examples:
-#		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails @()
-#		.\ProactiveDetectionScript.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails person1@mail.com,person2@mail.com
+#		.\ProactiveDetectionRulesMailUpdate.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails @()
+#		.\ProactiveDetectionRulesMailUpdate.ps1 -SendMailtoOwnersAndReadersEnabled False -CustomeMails person1@mail.com,person2@mail.com
 #
 
 Param(
