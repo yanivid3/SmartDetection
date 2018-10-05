@@ -1,0 +1,60 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.1.0.0",
+    "parameters": {
+        "AIResourceName": {
+          "type": "string", 
+          "defaultValue": "ResourceName"
+        },
+        "MetricName": {
+            "type": "string", 
+            "defaultValue": "metricNameValue"
+          },  
+        "Enabled": {
+            "type": "bool", 
+            "defaultValue": true
+          },
+        "SendEmails": {
+            "type": "bool", 
+            "defaultValue": false
+          },
+        "CustomEmails": {
+          "type": "array",
+          "defaultValue": ["email1@domain.com"]
+        }
+      },      
+      "resources": [
+        {
+            "apiVersion": "2016-03-01",
+            "name": "[concat('Failure Anomalies - ', parameters('AIResourceName'))]",
+            "type": "microsoft.insights/alertrules",
+            "location": "[resourceGroup().location]",
+            "tags": {
+              "[concat('hidden-link:', resourceGroup().id, '/providers/microsoft.insights/components/', parameters('AIResourceName'))]": "Resource",
+              "displayName": "[concat('Failure Anomalies - ', parameters('AIResourceName'))]"
+            },
+            "properties": {
+              "name": "[concat('Failure Anomalies - ', parameters('AIResourceName'))]",
+              "description": "",
+              "isEnabled": "[parameters('Enabled')]",
+              "condition": {
+                "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                "dataSource": {
+                  "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                  "resourceUri": "[concat(resourceGroup().id, '/providers/microsoft.insights/components/', parameters('AIResourceName')) ]",                          
+                  "metricName": "[parameters('MetricName')]"
+                },
+                "operator": "GreaterThan",
+                "threshold": 0,
+                "windowSize": "PT1H"                
+              },
+              "actions":[ {
+                "$type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.RuleEmailAction, Microsoft.WindowsAzure.Management.Mon.Client",
+                "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleEmailAction",
+                "sendToServiceOwners": "[parameters('SendEmails')]",
+                "customEmails": "[parameters('CustomEmails')]"
+              }
+            ]
+            }
+        }]
+    }
