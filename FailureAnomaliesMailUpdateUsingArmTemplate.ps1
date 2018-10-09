@@ -16,23 +16,23 @@ Param(
 
     [Parameter(Mandatory=$false)]
     [AllowNull()][AllowEmptyString()]
-    [string]$TenantId = "72f988bf-86f1-41af-91ab-2d7cd011db47",
+    [string]$TenantId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
  
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
-   [string]$SubscriptionId = "ebbc180c-3532-4e79-8750-adfd7757a466",
+   [string]$SubscriptionId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
-   [string]$ResourceGroupName = "ILDC-PPE",
+   [string]$ResourceGroupName = "resourceGroupName",
 
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
-   [string]$ResourceName = "DeepInsights-Ops-INT-inprod",
+   [string]$ResourceName = "resourceName",
 
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
-   [string]$ArmTemplatePath = "C:\Users\yanivy\Documents\FailureAnomaliesConf\FailureAnomaliesAlertRule.json",
+   [string]$ArmTemplatePath = "D:\path\to\FailureAnomaliesAlertRule.json",
 
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
@@ -44,7 +44,7 @@ Param(
 
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
-   [string[]]$CustomEmails = @("yanivy@microsoft.com","aiedison@microsoft.com"),
+   [string[]]$CustomEmails = @("email1@domain.com", "email2@domain.com"),
 
    [Parameter(Mandatory=$false)]
    [AllowNull()][AllowEmptyString()]
